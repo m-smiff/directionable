@@ -1,7 +1,8 @@
 PATH
   remote: .
   specs:
-    directionable (1.0.0)
+    directionable (0.1.0)
+      yard (~> 0.9.34)
 
 GEM
   remote: https://rubygems.org/
@@ -43,6 +44,7 @@ GEM
       parser (>= 3.1.1.0)
     ruby-progressbar (1.11.0)
     unicode-display_width (2.4.2)
+    yard (0.9.34)
 
 PLATFORMS
   arm64-darwin-21

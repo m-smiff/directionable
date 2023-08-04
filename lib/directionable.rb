@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
-require_relative "directionable/version"
-require_relative "directionable/direction"
-require_relative "directionable/extensions/integer"
-require_relative "directionable/extensions/float"
-require_relative "directionable/extensions/rational"
+require_relative 'directionable/version'
+require_relative 'directionable/direction'
+require_relative 'directionable/extensions/integer'
+require_relative 'directionable/extensions/float'
+require_relative 'directionable/extensions/rational'
 
 module Directionable
-  DEGREES_RANGE = (0..360).freeze
-  DEGREES_SYMBOL = "°"
+  DEGREES_IN_CIRCLE = 360
+  DEGREES_RANGE = (0..DEGREES_IN_CIRCLE)
+  DEGREES_SYMBOL = '°'
   CARDINALS_LONG = %i[NORTH EAST SOUTH WEST].freeze
   CARDINALS = %i[N E S W].freeze
   INTER_CARDINALS = %i[NE SE SW NW].freeze
@@ -21,4 +22,5 @@ module Directionable
   def to_dir
     Direction.new(self)
   end
+  alias degrees to_dir
 end

@@ -2,15 +2,15 @@
 
 module Directionable
   class Direction
-    attr_reader :degrees, :nearest_compass_point_short
+    attr_reader :degrees, :compass_point
 
     def initialize(degrees)
       @degrees = self.class.rationalize_degrees(degrees)
-      @nearest_compass_point_short = self.class.nearest_compass_point(@degrees, rationalize: false)
+      @compass_point = self.class.nearest_compass_point(@degrees, rationalize: false)
     end
 
     def inspect
-      "#{degrees}#{DEGREES_SYMBOL}"
+      to_s
     end
 
     def self.max
@@ -27,7 +27,7 @@ module Directionable
     end
 
     def to_s
-      inspect
+      "#{degrees}#{DEGREES_SYMBOL}"
     end
 
     def to_i
@@ -50,20 +50,26 @@ module Directionable
       self.class.new(self.class.rationalize_degrees(degrees, -other))
     end
 
-    def nearest_compass_point_long
-      @nearest_compass_point_long ||= nearest_compass_point_short.to_s.split("").map do |start_letter|
-        CARDINALS_LONG.find { |cardinal| cardinal.start_with?(start_letter) }
-      end.join("_").to_sym
+    def compass_point_long
+      @compass_point_long ||= begin
+        parts = compass_point.to_s.split('').map do |letter|
+          CARDINALS_LONG.find { |card| card.start_with?(letter) }
+        end
+
+        (parts.length > 2 ? parts.insert(1, '_').join : parts.join).to_sym
+      end
     end
 
     def self.nearest_compass_point(degrees, rationalize: true)
       reference = rationalize ? rationalize_degrees(degrees) : degrees
-      return all_compass_points.first unless reference >= (COMPASS_POINTS_DELTA / 2)
+      half_cone_range = COMPASS_POINTS_DELTA / 2
+      return all_compass_points.first unless reference >= half_cone_range
 
-      indexed_compass_points.find(-> { [] }) do |_point, direction|
-        half_cone_range = COMPASS_POINTS_DELTA / 2
-        (direction - half_cone_range)...(direction + half_cone_range).include?(reference)
-      end.first
+      point, _dir = indexed_compass_points.find(-> { [] }) do |_point, direction|
+        ((direction - half_cone_range)...(direction + half_cone_range)).include?(reference)
+      end
+
+      point
     end
 
     def self.indexed_compass_points
@@ -75,5 +81,3 @@ module Directionable
     private_class_method :indexed_compass_points
   end
 end
-
-# ref = 9, lgp = -2.5, hgp = 20.5

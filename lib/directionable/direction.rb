@@ -2,27 +2,29 @@
 
 module Directionable
   class Direction
-    attr_reader :degrees, :compass_point
+    attr_reader :degrees, :compass_ref_short
 
-    def initialize(degrees)
-      @degrees = self.class.rationalize_degrees(degrees)
-      @compass_point = self.class.nearest_compass_point(@degrees, rationalize: false)
+    def initialize(degrees, rationalize: true)
+      @degrees = rationalize ? self.class.rationalize_degrees(degrees) : degrees
+      raise InvalidDegrees if !@degrees.positive? || @degrees > DEGREES_IN_CIRCLE
+
+      @compass_ref_short = self.class.nearest_compass_ref(@degrees, rationalize: false)
     end
 
     def inspect
       to_s
     end
 
-    def self.max
-      DEGREES_RANGE.max
+    def compass_ref
+      send(compass_ref_length_method)
     end
 
     def self.rationalize_degrees(degrees, delta = 0)
-      modulo = (degrees + delta) % max
-      modulo.zero? ? max : modulo
+      modulo = (degrees + delta) % DEGREES_IN_CIRCLE
+      modulo.zero? ? DEGREES_IN_CIRCLE : modulo
     end
 
-    def self.all_compass_points
+    def self.all_compass_refs
       CARDINALS.zip(INTER_CARDINALS).flatten.zip(SUB_INTER_CARDINALS).flatten
     end
 
@@ -50,9 +52,9 @@ module Directionable
       self.class.new(self.class.rationalize_degrees(degrees, -other))
     end
 
-    def compass_point_long
-      @compass_point_long ||= begin
-        parts = compass_point.to_s.split('').map do |letter|
+    def compass_ref_long
+      @compass_ref_long ||= begin
+        parts = compass_ref_short.to_s.split('').map do |letter|
           CARDINALS_LONG.find { |card| card.start_with?(letter) }
         end
 
@@ -60,24 +62,30 @@ module Directionable
       end
     end
 
-    def self.nearest_compass_point(degrees, rationalize: true)
+    def self.nearest_compass_ref(degrees, rationalize: true)
       reference = rationalize ? rationalize_degrees(degrees) : degrees
-      half_cone_range = COMPASS_POINTS_DELTA / 2
-      return all_compass_points.first unless reference >= half_cone_range
+      half_cone_range = COMPASS_REFS_DELTA / 2
+      return all_compass_refs.first unless reference >= half_cone_range
 
-      point, _dir = indexed_compass_points.find(-> { [] }) do |_point, direction|
+      ref, _dir = indexed_compass_refs.find(-> { [] }) do |_point, direction|
         ((direction - half_cone_range)...(direction + half_cone_range)).include?(reference)
       end
 
-      point
+      ref
     end
 
-    def self.indexed_compass_points
-      all_compass_points.each_with_object({}).with_index do |point_and_hash, i|
+    def self.indexed_compass_refs
+      all_compass_refs.each_with_object({}).with_index do |point_and_hash, i|
         point, hash = point_and_hash
-        hash[point] = rationalize_degrees(COMPASS_POINTS_DELTA * i)
+        hash[point] = rationalize_degrees(COMPASS_REFS_DELTA * i)
       end
     end
-    private_class_method :indexed_compass_points
+    private_class_method :indexed_compass_refs
+
+    private
+
+    def compass_ref_length_method
+      :"compass_ref_#{Directionable.compass_ref_length}"
+    end
   end
 end

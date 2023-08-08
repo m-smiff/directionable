@@ -2,30 +2,25 @@
 
 module Directionable
   class Direction
-    attr_reader :degrees, :compass_ref_short
+    DEGREES_SYMBOL = '°'
 
-    def initialize(degrees, rationalize: true)
-      @degrees = rationalize ? self.class.rationalize_degrees(degrees) : degrees
-      raise InvalidDegrees if !@degrees.positive? || @degrees > DEGREES_IN_CIRCLE
+    attr_reader :degrees
 
-      @compass_ref_short = self.class.nearest_compass_ref(@degrees, rationalize: false)
+    def initialize(degrees, compass)
+      raise TypeError unless degrees.respond_to? :to_i
+
+      @degrees = degrees
+      raise InvalidDegrees unless valid?
+
+      @compass = compass
+    end
+
+    def self.valid_degrees?(num)
+      num.positive? && num <= DEGREES_IN_CIRCLE
     end
 
     def inspect
       to_s
-    end
-
-    def compass_ref
-      send(compass_ref_length_method)
-    end
-
-    def self.rationalize_degrees(degrees, delta = 0)
-      modulo = (degrees + delta) % DEGREES_IN_CIRCLE
-      modulo.zero? ? DEGREES_IN_CIRCLE : modulo
-    end
-
-    def self.all_compass_refs
-      CARDINALS.zip(INTER_CARDINALS).flatten.zip(SUB_INTER_CARDINALS).flatten
     end
 
     def to_s
@@ -45,47 +40,38 @@ module Directionable
     end
 
     def +(other)
-      self.class.new(self.class.rationalize_degrees(degrees, other))
+      self.class.new(rationalize_degrees(degrees, other), @compass)
     end
 
     def -(other)
-      self.class.new(self.class.rationalize_degrees(degrees, -other))
+      self.class.new(rationalize_degrees(degrees, -other), @compass)
     end
 
-    def compass_ref_long
-      @compass_ref_long ||= begin
-        parts = compass_ref_short.to_s.split('').map do |letter|
-          CARDINALS_LONG.find { |card| card.start_with?(letter) }
-        end
-
-        (parts.length > 2 ? parts.insert(1, '_').join : parts.join).to_sym
-      end
+    def compass_point
+      @compass_point ||= @compass.nearest_point(self).send(compass_point_length_method)
     end
 
-    def self.nearest_compass_ref(degrees, rationalize: true)
-      reference = rationalize ? rationalize_degrees(degrees) : degrees
-      half_cone_range = COMPASS_REFS_DELTA / 2
-      return all_compass_refs.first unless reference >= half_cone_range
-
-      ref, _dir = indexed_compass_refs.find(-> { [] }) do |_point, direction|
-        ((direction - half_cone_range)...(direction + half_cone_range)).include?(reference)
-      end
-
-      ref
+    def compass_point_acronym
+      @compass_point_acronym ||= @compass.nearest_point(self).acronym
     end
 
-    def self.indexed_compass_refs
-      all_compass_refs.each_with_object({}).with_index do |point_and_hash, i|
-        point, hash = point_and_hash
-        hash[point] = rationalize_degrees(COMPASS_REFS_DELTA * i)
-      end
+    def compass_point_full
+      @compass_point_full ||= @compass.nearest_point(self).full
     end
-    private_class_method :indexed_compass_refs
 
     private
 
-    def compass_ref_length_method
-      :"compass_ref_#{Directionable.compass_ref_length}"
+    def valid?
+      self.class.valid_degrees?(degrees)
+    end
+
+    def rationalize_degrees(degs, delta = 0)
+      modulo = (degs + delta) % DEGREES_IN_CIRCLE
+      modulo.zero? ? DEGREES_IN_CIRCLE : modulo
+    end
+
+    def compass_point_length_method
+      Directionable.compass_point_length
     end
   end
 end

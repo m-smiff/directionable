@@ -1,48 +1,59 @@
 # frozen_string_literal: true
 
+require 'active_support/core_ext/module/attribute_accessors'
+require 'active_support/core_ext/object/inclusion'
+
 require_relative 'directionable/version'
 require_relative 'directionable/direction'
+require_relative 'directionable/compass'
 require_relative 'directionable/extensions/integer'
 require_relative 'directionable/extensions/float'
 require_relative 'directionable/extensions/rational'
 
 module Directionable
-  class InvalidDegrees < StandardError; end
+  class InvalidDegrees < StandardError
+    
+  end
 
   DEGREES_IN_CIRCLE = 360
-  DEGREES_SYMBOL = '°'
-  CARDINALS_LONG = %i[NORTH EAST SOUTH WEST].freeze
-  CARDINALS = %i[N E S W].freeze
-  INTER_CARDINALS = %i[NE SE SW NW].freeze
-  SUB_INTER_CARDINALS = %i[NNE ENE ESE SSE SSW WSW WNW NNW].freeze
-  COMPASS_REFS_DELTA = (
-    # Number of degrees in circle (360) divided by number of compass points (16) => 22.5
-    DEGREES_IN_CIRCLE / (CARDINALS.count + INTER_CARDINALS.count + SUB_INTER_CARDINALS.count).to_f
-  )
-  VALID_COMPASS_REF_LENGTHS = %i[short long].freeze
+  VALID_COMPASS_POINT_LENGTHS = %i[acronym full].freeze
+  DEFAULT_COMPASS_POINT_LENGTH = :acronym
+  VALID_COMPASS_POINTS_COUNTS = [4, 8, 16, 32].freeze
+  DEFAULT_COMPASS_POINTS_COUNT = 8
+  private_constant :VALID_COMPASS_POINT_LENGTHS, :VALID_COMPASS_POINTS_COUNTS,
+                   :DEFAULT_COMPASS_POINT_LENGTH, :DEFAULT_COMPASS_POINTS_COUNT
 
-  @compass_ref_length = VALID_COMPASS_REF_LENGTHS.first
-
-  def self.compass_ref_length
-    @compass_ref_length
-  end
-
-  def self.compass_ref_length=(length)
-    @compass_ref_length = length if VALID_COMPASS_REF_LENGTHS.include?(length)
-  end
+  mattr_accessor :compass_point_length, default: DEFAULT_COMPASS_POINT_LENGTH, instance_writer: false, instance_reader: false
+  mattr_accessor :compass_points_count, default: DEFAULT_COMPASS_POINTS_COUNT, instance_writer: false, instance_reader: false
+  mattr_accessor :compass, default: Compass.new(@@compass_points_count), instance_writer: false, instance_reader: false
 
   def self.config
     yield(self) if block_given?
+    reject_invalid_config_vals
+    refresh_compass if compass.points_count != compass_points_count
     self
   end
 
-  def to_dir!
-    Direction.new(self, rationalize: false)
-  end
-  alias degrees! to_dir!
+  class Config
 
-  def to_dir
-    Direction.new(self)
   end
-  alias degrees to_dir
+
+  def degrees
+    Direction.valid_degrees?(self) ? Direction.new(self, Directionable.compass) : nil
+  end
+
+  def degrees!
+    Direction.new(self, Directionable.compass)
+  end
+
+  def self.reject_invalid_config_vals
+    self.compass_point_length = DEFAULT_COMPASS_POINT_LENGTH unless compass_point_length.in? VALID_COMPASS_POINT_LENGTHS
+    self.compass_points_count = DEFAULT_COMPASS_POINTS_COUNT unless compass_points_count.in? VALID_COMPASS_POINTS_COUNTS
+  end
+
+  def self.refresh_compass
+    compass.points_count = compass_points_count
+  end
+
+  private_class_method :reject_invalid_config_vals, :refresh_compass
 end

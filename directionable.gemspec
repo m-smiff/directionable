@@ -3,16 +3,16 @@
 require_relative "lib/directionable/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "directionable"
+  spec.name = 'directionable'
   spec.version = Directionable::VERSION
-  spec.authors = ["Matt"]
-  spec.email = ["jetnova@pm.me"]
+  spec.authors = ['Matt']
+  spec.email = ['jetnova@pm.me']
 
-  spec.summary = "Write a short summary, because RubyGems requires one."
-  spec.description = "Write a longer description or delete this line."
-  spec.homepage = "https://github.com/m-smiff"
-  spec.license = "MIT"
-  spec.required_ruby_version = ">= 2.6.0"
+  spec.summary = 'Write a short summary, because RubyGems requires one.'
+  spec.description = 'Write a longer description or delete this line.'
+  spec.homepage = 'https://github.com/m-smiff'
+  spec.license = 'MIT'
+  spec.required_ruby_version = '>= 2.6.0'
 
   spec.metadata['allowed_push_host'] = "TODO: Set to your gem server 'https://example.com'"
 
@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
+  spec.add_dependency 'activesupport', '~> 7.0', '>= 7.0.6'
   spec.add_dependency 'yard', '~> 0.9.34'
 
   # For more information and examples about making a new gem, check out our
